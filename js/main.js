@@ -1,37 +1,42 @@
 class UserInterface {
-  constructor(wordsArray, timer) {
+  constructor(dataManager, timer) {
     this.divTimer = document.querySelector(".timer");
     this.inputUserText = document.querySelector(".user-text");
     this.divWordsWrapper = document.querySelector(".words-wrapper");
     this.divTypedWords = document.querySelector(".typed-words");
     this.divPromptWords = document.querySelector(".prompt-words");
-    this.wordsArray = wordsArray;
+    this.dataManager = dataManager;
     this.timer = timer;
+  }
+
+  async initialize() {
+    this.wordsArray = await this.dataManager.getWords();
+    this.setInitialState();
+    this.attachEventListeners();
+  }
+
+  setInitialState() {
+    this.divTimer.innerText = this.timer.timePeriod;
     this.currentWordIndex = 0;
     this.inputCharacterIndex = 0;
     this.displayedPromptWordsCount = 0;
-    this.initialPromptWordsCount = 10;
+    this.initialPromptWordsCount = 15;
     this.currentWord = undefined;
     this.currentWordCharacters = undefined;
-  }
-
-  initialize() {
-    this.divTimer.innerText = this.timer.timeLeft;
     this.addPromptWords();
     this.getNextWord();
     this.createTypedWord();
-    this.attachEventListeners();
   }
 
   handleTypedWord() {
     this.updateTypedWordClasses();
     this.currentWord.remove();
+    this.addPromptWord();
     this.getNextWord();
+    this.createTypedWord();
     this.inputUserText.value = "";
     this.inputCharacterIndex = 0;
     this.currentWordIndex++;
-    this.createTypedWord();
-    this.addPromptWord();
   }
 
   updateTypedWordClasses() {
@@ -83,6 +88,14 @@ class UserInterface {
         this.inputUserText.focus();
       } else if (this.divWordsWrapper.classList.contains("selected")) {
         this.divWordsWrapper.classList.remove("selected");
+      }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        this.restart();
+      } else if (e.key === "Escape") {
+        this.reset();
       }
     });
 
@@ -161,6 +174,47 @@ class UserInterface {
     const typedWord = document.createElement("div");
     this.divTypedWords.appendChild(typedWord);
   }
+
+  removeWords() {
+    this.divTypedWords.innerHTML = "";
+    this.divPromptWords.innerHTML = "";
+  }
+
+  restart() {
+    this.removeWords();
+    this.setInitialState();
+    this.timer.reset();
+    this.inputUserText.value = "";
+    this.inputUserText.disabled = false;
+    this.inputUserText.focus();
+    this.divWordsWrapper.classList.add("selectable");
+  }
+
+  async reset() {
+    this.wordsArray = await this.dataManager.getWords();
+    this.restart();
+  }
+}
+
+class DataManager {
+  constructor() {}
+
+  async getWords() {
+    try {
+      const response = await fetch(
+        "https://random-word-api.herokuapp.com/word?number=250"
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch words");
+      }
+      const words = await response.json();
+      this.words = words;
+      return words;
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  }
 }
 
 class Timer {
@@ -192,265 +246,21 @@ class Timer {
     this.interval = undefined;
     document.dispatchEvent(this.timerEndEvent);
   }
+
+  reset() {
+    if (this.interval !== undefined) clearInterval(this.interval);
+    this.started = false;
+    this.allowStart = true;
+    this.timeLeft = this.timePeriod;
+    this.interval = null;
+  }
 }
 
-const main = (wordsArray) => {
+const main = () => {
   const timer = new Timer(10);
-  const userInterface = new UserInterface(wordsArray, timer);
+  const dataManager = new DataManager();
+  const userInterface = new UserInterface(dataManager, timer);
   userInterface.initialize();
 };
 
-const words = [
-  "toadying",
-  "earner",
-  "uretic",
-  "absterges",
-  "periodicity",
-  "tenebrae",
-  "solitary",
-  "edemata",
-  "themselves",
-  "aggrandize",
-  "hobbing",
-  "evenhanded",
-  "dissolute",
-  "tubings",
-  "milded",
-  "dobsonflies",
-  "regearing",
-  "calorically",
-  "aerosolize",
-  "chairmaning",
-  "hallucinogenic",
-  "rattening",
-  "cymlins",
-  "inhibit",
-  "pomfret",
-  "fossicking",
-  "disappearance",
-  "narrations",
-  "discombobulates",
-  "plagiarize",
-  "fops",
-  "pixels",
-  "buffet",
-  "sentineled",
-  "restrings",
-  "spumiest",
-  "fallownesses",
-  "intrusion",
-  "glimpser",
-  "trippings",
-  "iatrogenically",
-  "mizuna",
-  "liturgy",
-  "owning",
-  "loanshift",
-  "barbette",
-  "aquarist",
-  "deionizing",
-  "arrowy",
-  "anabaenas",
-  "saddlebreds",
-  "frowsier",
-  "ambeer",
-  "monoglot",
-  "consummation",
-  "lighthearted",
-  "glockenspiels",
-  "camails",
-  "eglantine",
-  "billon",
-  "trothplighted",
-  "disseisins",
-  "epicyclic",
-  "funkers",
-  "quiches",
-  "algaecides",
-  "quack",
-  "annihilate",
-  "coplots",
-  "limbo",
-  "monoester",
-  "longans",
-  "ornamented",
-  "tallitim",
-  "guanidin",
-  "removableness",
-  "octave",
-  "illumes",
-  "regionalistic",
-  "offertory",
-  "initialers",
-  "knish",
-  "survivors",
-  "apers",
-  "flowerages",
-  "anthelixes",
-  "misdiagnosis",
-  "azo",
-  "rewidens",
-  "toolsheds",
-  "connaturalities",
-  "mulligans",
-  "webcasted",
-  "monitors",
-  "phoebe",
-  "adit",
-  "melancholy",
-  "finaglers",
-  "woadwaxen",
-  "eradicable",
-  "anachronous",
-  "tauts",
-  "convertors",
-  "miscreations",
-  "proems",
-  "celestially",
-  "scalade",
-  "raggednesses",
-  "lamebrain",
-  "hammals",
-  "epexegeses",
-  "affluencies",
-  "unshell",
-  "fearlessness",
-  "cacomixl",
-  "holism",
-  "oxyhemoglobins",
-  "phials",
-  "backblock",
-  "snyes",
-  "cribbages",
-  "knucklier",
-  "retiringly",
-  "sociobiology",
-  "gazetting",
-  "prize",
-  "quarterbacking",
-  "pomps",
-  "inthral",
-  "inoculative",
-  "communalist",
-  "barleycorn",
-  "paleozoology",
-  "viewy",
-  "dressmaker",
-  "anabas",
-  "spinsterhoods",
-  "fano",
-  "chafing",
-  "palates",
-  "preunited",
-  "deemed",
-  "incuriousnesses",
-  "maddest",
-  "stoniness",
-  "uncandled",
-  "aestivations",
-  "entrancements",
-  "rarenesses",
-  "soddened",
-  "growled",
-  "rumble",
-  "humidifying",
-  "adaptor",
-  "undotted",
-  "bankcards",
-  "traduced",
-  "coldblood",
-  "papules",
-  "reincorporate",
-  "centesis",
-  "collides",
-  "essentialize",
-  "resentfully",
-  "natatoria",
-  "viridity",
-  "infinity",
-  "prickers",
-  "cloudlessness",
-  "dressiest",
-  "wimpling",
-  "sympathins",
-  "dopinesses",
-  "daglocks",
-  "hatful",
-  "fragmentation",
-  "pitsaw",
-  "pht",
-  "phallocentric",
-  "faenas",
-  "adnoun",
-  "hafizes",
-  "constructions",
-  "unwishes",
-  "variablenesses",
-  "eroticisms",
-  "villains",
-  "dummied",
-  "biotron",
-  "plaisters",
-  "rockfishes",
-  "nonmarket",
-  "invocating",
-  "dinette",
-  "linos",
-  "egestion",
-  "recock",
-  "piroplasma",
-  "psychopath",
-  "tushie",
-  "attrites",
-  "polarographies",
-  "scuffed",
-  "avow",
-  "solanaceous",
-  "nonlegumes",
-  "peacekeepers",
-  "gnawers",
-  "espaliering",
-  "penguins",
-  "fudging",
-  "autografting",
-  "soba",
-  "upleap",
-  "outpreached",
-  "remuda",
-  "hayracks",
-  "parathion",
-  "thromboplastic",
-  "dogmatists",
-  "blindfold",
-  "nixie",
-  "plugless",
-  "soul",
-  "batting",
-  "nucleoplasm",
-  "netizens",
-  "paralyses",
-  "ephedras",
-  "walla",
-  "asperities",
-  "berming",
-  "squama",
-  "asafoetidas",
-  "abwatts",
-  "evacuees",
-  "cenacle",
-  "gasters",
-  "daemon",
-  "punctiliously",
-  "misfocusses",
-  "column",
-  "zelkova",
-  "zealously",
-  "caners",
-  "columbites",
-  "jerkiest",
-  "permeators",
-  "tittivating",
-  "wharfmaster",
-];
-
-main(words);
+main();
