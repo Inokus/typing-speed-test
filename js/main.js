@@ -1,20 +1,22 @@
 class UserInterface {
-  constructor(wordsArray) {
+  constructor(wordsArray, timer) {
+    this.divTimer = document.querySelector(".timer");
     this.inputUserText = document.querySelector(".user-text");
     this.divWordsWrapper = document.querySelector(".words-wrapper");
     this.divTypedWords = document.querySelector(".typed-words");
     this.divPromptWords = document.querySelector(".prompt-words");
     this.wordsArray = wordsArray;
+    this.timer = timer;
     this.currentWordIndex = 0;
     this.inputCharacterIndex = 0;
     this.displayedPromptWordsCount = 0;
     this.initialPromptWordsCount = 10;
     this.currentWord = undefined;
-    this.currentWordLetters = undefined;
-    this.initialize();
+    this.currentWordCharacters = undefined;
   }
 
   initialize() {
+    this.divTimer.innerText = this.timer.timeLeft;
     this.addPromptWords();
     this.getNextWord();
     this.createTypedWord();
@@ -33,14 +35,12 @@ class UserInterface {
   }
 
   updateTypedWordClasses() {
-    for (let character of this.divTypedWords.lastElementChild.children) {
-      character.classList.remove("correct", "incorrect");
-    }
-
     this.divTypedWords.lastElementChild.classList.remove("active");
     this.divTypedWords.lastElementChild.classList.add("word");
 
-    if (this.wordsArray[this.currentWordIndex] !== this.inputUserText.value) {
+    if (this.wordsArray[this.currentWordIndex] === this.inputUserText.value) {
+      this.divTypedWords.lastElementChild.classList.add("correct-word");
+    } else {
       this.divTypedWords.lastElementChild.classList.add("incorrect-word");
     }
   }
@@ -48,18 +48,18 @@ class UserInterface {
   displayTypedCharacter(character) {
     const currentTypedCharacter = document.createElement("span");
     currentTypedCharacter.innerText = character;
-    if (this.currentWordLetters.length - 1 >= this.inputCharacterIndex) {
+    if (this.currentWordCharacters.length - 1 >= this.inputCharacterIndex) {
       if (
         character ===
-        this.currentWordLetters[this.inputCharacterIndex].innerText
+        this.currentWordCharacters[this.inputCharacterIndex].innerText
       ) {
-        currentTypedCharacter.classList.add("correct");
+        currentTypedCharacter.classList.add("correct-character");
       } else {
-        currentTypedCharacter.classList.add("incorrect");
+        currentTypedCharacter.classList.add("incorrect-character");
       }
-      this.currentWordLetters[this.inputCharacterIndex].hidden = true;
+      this.currentWordCharacters[this.inputCharacterIndex].hidden = true;
     } else {
-      currentTypedCharacter.classList.add("incorrect");
+      currentTypedCharacter.classList.add("incorrect-character");
     }
     this.divTypedWords.lastElementChild.appendChild(currentTypedCharacter);
     this.inputCharacterIndex++;
@@ -67,20 +67,34 @@ class UserInterface {
 
   removeTypedCharacter() {
     this.inputCharacterIndex--;
-    if (this.currentWordLetters.length - 1 >= this.inputCharacterIndex) {
-      this.currentWordLetters[this.inputCharacterIndex].hidden = false;
+    if (this.currentWordCharacters.length - 1 >= this.inputCharacterIndex) {
+      this.currentWordCharacters[this.inputCharacterIndex].hidden = false;
     }
     this.divTypedWords.lastElementChild.lastElementChild.remove();
   }
 
   attachEventListeners() {
     document.addEventListener("click", (e) => {
-      if (e.target.closest(".words-wrapper")) {
+      if (
+        e.target.closest(".words-wrapper") &&
+        this.divWordsWrapper.classList.contains("selectable")
+      ) {
         this.divWordsWrapper.classList.add("selected");
         this.inputUserText.focus();
       } else if (this.divWordsWrapper.classList.contains("selected")) {
         this.divWordsWrapper.classList.remove("selected");
       }
+    });
+
+    document.addEventListener("timerIntervalUpdate", () => {
+      this.divTimer.innerText = this.timer.timeLeft;
+    });
+
+    document.addEventListener("timerEnd", () => {
+      this.inputUserText.disabled = true;
+      this.divWordsWrapper.classList.remove("selectable");
+      this.currentWord.classList.remove("active");
+      this.divTypedWords.lastElementChild.classList.add("word");
     });
 
     this.inputUserText.addEventListener("focus", () => {
@@ -89,14 +103,13 @@ class UserInterface {
 
     this.inputUserText.addEventListener("blur", () => {
       this.divWordsWrapper.classList.remove("selected");
-      this.inputUserText.blur();
     });
 
     this.inputUserText.addEventListener("keydown", (e) => {
       if (e.key === " ") {
         // Ignore spaces if input is empty
         if (!this.inputUserText.value) e.preventDefault();
-        else {
+        else if (this.timer.started) {
           e.preventDefault();
           this.handleTypedWord();
         }
@@ -106,25 +119,29 @@ class UserInterface {
     this.inputUserText.addEventListener("input", (e) => {
       if (
         e.data === null &&
-        this.divTypedWords.lastElementChild.children.length > 0
+        this.divTypedWords.lastElementChild.children.length > 0 &&
+        this.timer.started
       ) {
         this.removeTypedCharacter();
       } else {
-        this.displayTypedCharacter(e.data);
+        // Start timer when user starts typing
+        if (!this.timer.started && this.timer.allowStart) this.timer.start();
+        if (this.timer.started) this.displayTypedCharacter(e.data);
       }
     });
   }
 
   addPromptWord() {
-    const word = document.createElement("div");
-    word.classList.add("word");
+    const divWord = document.createElement("div");
+    divWord.classList.add("word");
 
     for (let character of this.wordsArray[this.displayedPromptWordsCount]) {
-      const letter = document.createElement("span");
-      letter.textContent = character;
-      word.appendChild(letter);
+      const spanCharacter = document.createElement("span");
+      spanCharacter.innerText = character;
+      divWord.appendChild(spanCharacter);
     }
-    this.divPromptWords.appendChild(word);
+
+    this.divPromptWords.appendChild(divWord);
     this.displayedPromptWordsCount++;
   }
 
@@ -137,7 +154,7 @@ class UserInterface {
   getNextWord() {
     this.currentWord = this.divPromptWords.firstElementChild;
     this.currentWord.classList.add("active");
-    this.currentWordLetters = this.currentWord.children;
+    this.currentWordCharacters = this.currentWord.children;
   }
 
   createTypedWord() {
@@ -146,8 +163,41 @@ class UserInterface {
   }
 }
 
+class Timer {
+  constructor(time) {
+    this.timePeriod = time;
+    this.started = false;
+    this.allowStart = true;
+    this.timeLeft = this.timePeriod;
+    this.interval = undefined;
+    this.timerIntervalUpdateEvent = new Event("timerIntervalUpdate");
+    this.timerEndEvent = new Event("timerEnd");
+  }
+
+  start() {
+    this.started = true;
+    this.allowStart = false;
+    this.interval = setInterval(() => {
+      this.timeLeft--;
+      document.dispatchEvent(this.timerIntervalUpdateEvent);
+      if (this.timeLeft === 0) {
+        this.stop();
+      }
+    }, 1000);
+  }
+
+  stop() {
+    if (this.interval !== undefined) clearInterval(this.interval);
+    this.started = false;
+    this.interval = undefined;
+    document.dispatchEvent(this.timerEndEvent);
+  }
+}
+
 const main = (wordsArray) => {
-  const interface = new UserInterface(wordsArray);
+  const timer = new Timer(10);
+  const userInterface = new UserInterface(wordsArray, timer);
+  userInterface.initialize();
 };
 
 const words = [

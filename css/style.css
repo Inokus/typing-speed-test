@@ -1,10 +1,24 @@
 main {
   display: flex;
+  flex-direction: column;
   justify-content: center;
+  align-items: center;
+  row-gap: 1rem;
   width: 80vw;
   padding: 2rem;
   margin: auto;
   font-family: monospace;
+}
+
+.timer-wrapper {
+  text-align: center;
+}
+
+.timer {
+  width: 200px;
+  text-align: center;
+  font-size: 48px;
+  font-weight: 700;
 }
 
 .user-text {
@@ -20,7 +34,6 @@ main {
   width: 100%;
   padding: 1rem;
   font-size: 24px;
-  cursor: text;
 }
 
 .cursor {
@@ -30,6 +43,10 @@ main {
   color: orange;
   user-select: none;
   visibility: hidden;
+}
+
+.selectable {
+  cursor: text;
 }
 
 .selected {
@@ -58,15 +75,6 @@ main {
   text-align: right;
 }
 
-.correct-word {
-  color: green;
-}
-
-.incorrect-word {
-  color: red;
-  text-decoration: line-through;
-}
-
 .word {
   color: gray;
 }
@@ -76,12 +84,27 @@ main {
   /* text-decoration: underline; */
 }
 
-.correct {
+.correct-word {
+  /* text-shadow: 1px 1px 0 rgba(0, 255, 0, 0.5); */
+  text-decoration: underline;
+}
+
+.incorrect-word {
+  /* text-shadow: 1px 1px 0 rgba(255, 0, 0, 0.5); */
+  text-decoration: line-through;
+}
+
+.correct-character {
   background-color: rgba(0, 255, 0, 0.5);
 }
 
-.incorrect {
+.incorrect-character {
   background-color: rgba(255, 0, 0, 0.5);
+}
+
+.word > .correct-character,
+.word > .incorrect-character {
+  background-color: inherit;
 }
 
 @keyframes blinking {
