@@ -10,13 +10,23 @@ main {
   font-family: monospace;
 }
 
+.stats {
+  display: flex;
+  column-gap: 2rem;
+  text-align: center;
+}
+
+.wpm,
+.accuracy {
+  font-size: 36px;
+  font-weight: 700;
+}
+
 .timer-wrapper {
   text-align: center;
 }
 
 .timer {
-  width: 200px;
-  text-align: center;
   font-size: 48px;
   font-weight: 700;
 }

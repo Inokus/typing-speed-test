@@ -1,5 +1,7 @@
 class UserInterface {
   constructor(dataManager, timer) {
+    this.divWordsPerMinute = document.querySelector(".wpm");
+    this.divAccuracy = document.querySelector(".accuracy");
     this.divTimer = document.querySelector(".timer");
     this.inputUserText = document.querySelector(".user-text");
     this.divWordsWrapper = document.querySelector(".words-wrapper");
@@ -10,12 +12,14 @@ class UserInterface {
   }
 
   async initialize() {
-    this.wordsArray = await this.dataManager.getWords();
+    await this.dataManager.getWords();
     this.setInitialState();
     this.attachEventListeners();
   }
 
   setInitialState() {
+    this.divWordsPerMinute.innerText = this.dataManager.correctlyTypedWords;
+    this.divAccuracy.innerText = this.dataManager.accuracy;
     this.divTimer.innerText = this.timer.timePeriod;
     this.currentWordIndex = 0;
     this.inputCharacterIndex = 0;
@@ -29,6 +33,7 @@ class UserInterface {
   }
 
   handleTypedWord() {
+    this.updateStats();
     this.updateTypedWordClasses();
     this.currentWord.remove();
     this.addPromptWord();
@@ -39,11 +44,25 @@ class UserInterface {
     this.currentWordIndex++;
   }
 
+  updateStats() {
+    this.dataManager.typedWords++;
+    if (
+      this.dataManager.words[this.currentWordIndex] === this.inputUserText.value
+    ) {
+      this.dataManager.correctlyTypedWords++;
+    }
+    this.dataManager.updateAccuracy();
+    this.divWordsPerMinute.innerText = this.dataManager.correctlyTypedWords;
+    this.divAccuracy.innerText = this.dataManager.accuracy;
+  }
+
   updateTypedWordClasses() {
     this.divTypedWords.lastElementChild.classList.remove("active");
     this.divTypedWords.lastElementChild.classList.add("word");
 
-    if (this.wordsArray[this.currentWordIndex] === this.inputUserText.value) {
+    if (
+      this.dataManager.words[this.currentWordIndex] === this.inputUserText.value
+    ) {
       this.divTypedWords.lastElementChild.classList.add("correct-word");
     } else {
       this.divTypedWords.lastElementChild.classList.add("incorrect-word");
@@ -124,6 +143,7 @@ class UserInterface {
         if (!this.inputUserText.value) e.preventDefault();
         else if (this.timer.started) {
           e.preventDefault();
+
           this.handleTypedWord();
         }
       }
@@ -148,7 +168,9 @@ class UserInterface {
     const divWord = document.createElement("div");
     divWord.classList.add("word");
 
-    for (let character of this.wordsArray[this.displayedPromptWordsCount]) {
+    for (let character of this.dataManager.words[
+      this.displayedPromptWordsCount
+    ]) {
       const spanCharacter = document.createElement("span");
       spanCharacter.innerText = character;
       divWord.appendChild(spanCharacter);
@@ -182,8 +204,9 @@ class UserInterface {
 
   restart() {
     this.removeWords();
-    this.setInitialState();
+    this.dataManager.reset();
     this.timer.reset();
+    this.setInitialState();
     this.inputUserText.value = "";
     this.inputUserText.disabled = false;
     this.inputUserText.focus();
@@ -191,29 +214,49 @@ class UserInterface {
   }
 
   async reset() {
-    this.wordsArray = await this.dataManager.getWords();
+    this.dataManager.shuffleWords();
     this.restart();
   }
 }
 
 class DataManager {
-  constructor() {}
+  constructor() {
+    this.words = undefined;
+    this.typedWords = 0;
+    this.correctlyTypedWords = 0;
+    this.accuracy = 0;
+  }
 
   async getWords() {
     try {
-      const response = await fetch(
-        "https://random-word-api.herokuapp.com/word?number=250"
-      );
+      const response = await fetch("../dictionary.json");
       if (!response.ok) {
         throw new Error("Failed to fetch words");
       }
-      const words = await response.json();
-      this.words = words;
-      return words;
+      this.words = await response.json();
+      this.shuffleWords();
     } catch (error) {
       console.error(error);
-      return null;
     }
+  }
+
+  shuffleWords() {
+    for (let i = this.words.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [this.words[i], this.words[j]] = [this.words[j], this.words[i]];
+    }
+  }
+
+  updateAccuracy() {
+    this.accuracy = Math.trunc(
+      (this.correctlyTypedWords / this.typedWords) * 100
+    );
+  }
+
+  reset() {
+    this.typedWords = 0;
+    this.correctlyTypedWords = 0;
+    this.accuracy = 0;
   }
 }
 
@@ -257,7 +300,7 @@ class Timer {
 }
 
 const main = () => {
-  const timer = new Timer(10);
+  const timer = new Timer(60);
   const dataManager = new DataManager();
   const userInterface = new UserInterface(dataManager, timer);
   userInterface.initialize();
