@@ -7,13 +7,22 @@ class UserInterface {
     this.divWordsWrapper = document.querySelector(".words-wrapper");
     this.divTypedWords = document.querySelector(".typed-words");
     this.divPromptWords = document.querySelector(".prompt-words");
+    this.canvasChart = document.querySelector(".chart").getContext("2d");
+    this.btnWordsPerMinuteMode = document.querySelector(
+      ".chart-buttons button:first-of-type"
+    );
+    this.btnAccuracyMode = document.querySelector(
+      ".chart-buttons button:last-of-type"
+    );
     this.dataManager = dataManager;
     this.timer = timer;
   }
 
   async initialize() {
     await this.dataManager.getWords();
+    this.dataManager.getLocalStorage();
     this.setInitialState();
+    this.createChart();
     this.attachEventListeners();
   }
 
@@ -33,7 +42,7 @@ class UserInterface {
   }
 
   handleTypedWord() {
-    this.updateStats();
+    this.updateUserMetrics();
     this.updateTypedWordClasses();
     this.currentWord.remove();
     this.addPromptWord();
@@ -44,7 +53,7 @@ class UserInterface {
     this.currentWordIndex++;
   }
 
-  updateStats() {
+  updateUserMetrics() {
     this.dataManager.typedWords++;
     if (
       this.dataManager.words[this.currentWordIndex] === this.inputUserText.value
@@ -108,6 +117,20 @@ class UserInterface {
       } else if (this.divWordsWrapper.classList.contains("selected")) {
         this.divWordsWrapper.classList.remove("selected");
       }
+
+      if (e.target === this.btnWordsPerMinuteMode) {
+        e.target.disabled = true;
+        this.btnAccuracyMode.disabled = false;
+        this.chartMode = "wpm";
+        this.updateChart("wpm");
+      }
+
+      if (e.target === this.btnAccuracyMode) {
+        e.target.disabled = true;
+        this.btnWordsPerMinuteMode.disabled = false;
+        this.chartMode = "accuracy";
+        this.updateChart("accuracy");
+      }
     });
 
     document.addEventListener("keydown", (e) => {
@@ -123,6 +146,8 @@ class UserInterface {
     });
 
     document.addEventListener("timerEnd", () => {
+      this.dataManager.updateLocalStorage();
+      this.updateChart(this.chartMode);
       this.inputUserText.disabled = true;
       this.divWordsWrapper.classList.remove("selectable");
       this.currentWord.classList.remove("active");
@@ -141,11 +166,16 @@ class UserInterface {
       if (e.key === " ") {
         // Ignore spaces if input is empty
         if (!this.inputUserText.value) e.preventDefault();
+        // Otherwise submit current word and go to the next
         else if (this.timer.started) {
           e.preventDefault();
 
           this.handleTypedWord();
         }
+      }
+      // Prevent user from manipulating input data in unexpected ways
+      if (e.ctrlKey || e.shiftKey || (e.keyCode >= 37 && e.keyCode <= 40)) {
+        e.preventDefault();
       }
     });
 
@@ -202,6 +232,64 @@ class UserInterface {
     this.divPromptWords.innerHTML = "";
   }
 
+  createChart() {
+    const data = this.dataManager.getLastEntries(10);
+    const config = {
+      type: "line",
+      data: {
+        labels: data.map((entry) => entry.dateAndTime),
+        datasets: [
+          {
+            label: "words per minute",
+            data: data.map((entry) => entry.wpm),
+            backgroundColor: "rgba(75, 192, 192, 0.5)",
+            borderColor: "rgba(75, 192, 192, 1)",
+            // borderWidth: 1,
+            // tension: 0.1,
+            fill: false,
+          },
+        ],
+      },
+      options: {
+        scales: {
+          x: {
+            display: false,
+          },
+          y: {
+            // beginAtZero: true,
+            title: {
+              display: true,
+              text: "WPM",
+            },
+          },
+        },
+        plugins: {
+          legend: {
+            display: false,
+          },
+        },
+      },
+    };
+
+    this.chart = new Chart(this.canvasChart, config);
+    this.chartMode = "wpm";
+  }
+
+  updateChart(mode) {
+    const data = this.dataManager.getLastEntries(10);
+    this.chart.data.labels = data.map((entry) => entry.dateAndTime);
+    if (mode === "wpm") {
+      this.chart.data.datasets[0].label = "words per minute";
+      this.chart.data.datasets[0].data = data.map((entry) => entry.wpm);
+      this.chart.options.scales.y.title.text = "WPM";
+    } else {
+      this.chart.data.datasets[0].label = "accuracy percentage";
+      this.chart.data.datasets[0].data = data.map((entry) => entry.accuracy);
+      this.chart.options.scales.y.title.text = "accuracy, %";
+    }
+    this.chart.update();
+  }
+
   restart() {
     this.removeWords();
     this.dataManager.reset();
@@ -222,6 +310,7 @@ class UserInterface {
 class DataManager {
   constructor() {
     this.words = undefined;
+    this.userMetrics = [];
     this.typedWords = 0;
     this.correctlyTypedWords = 0;
     this.accuracy = 0;
@@ -251,6 +340,49 @@ class DataManager {
     this.accuracy = Math.trunc(
       (this.correctlyTypedWords / this.typedWords) * 100
     );
+  }
+
+  addUserMetricsEntry() {
+    const date = new Date();
+    const entry = {
+      dateAndTime: date.toLocaleString(),
+      wpm: this.correctlyTypedWords,
+      accuracy: this.accuracy,
+    };
+
+    console.log(date.toLocaleString());
+    this.userMetrics.push(entry);
+    this.logBestEntry();
+  }
+
+  getLocalStorage() {
+    const userMetrics = localStorage.getItem("userMetrics");
+    if (userMetrics) this.userMetrics = JSON.parse(userMetrics);
+  }
+
+  // Change
+  logBestEntry() {
+    const sorted = this.userMetrics.toSorted((a, b) => {
+      // If wpm is different, sort by wpm
+      if (a.wpm !== b.wpm) {
+        return b.wpm - a.wpm;
+      } else {
+        // If wpm is the same, sort by accuracy
+        return b.accuracy - a.accuracy;
+      }
+    });
+    console.log(sorted[0]);
+  }
+
+  getLastEntries(num) {
+    if (this.userMetrics.length < num || num === undefined)
+      return this.userMetrics;
+    else return this.userMetrics.slice(this.userMetrics.length - 10);
+  }
+
+  updateLocalStorage() {
+    this.addUserMetricsEntry();
+    localStorage.setItem("userMetrics", JSON.stringify(this.userMetrics));
   }
 
   reset() {
@@ -300,7 +432,7 @@ class Timer {
 }
 
 const main = () => {
-  const timer = new Timer(60);
+  const timer = new Timer(20);
   const dataManager = new DataManager();
   const userInterface = new UserInterface(dataManager, timer);
   userInterface.initialize();

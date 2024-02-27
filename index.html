@@ -6,11 +6,15 @@
     <title>Typing Speed Test</title>
     <link rel="stylesheet" href="./css/normalize.css" />
     <link rel="stylesheet" href="./css/style.css" />
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"
+    ></script>
     <script defer src="./js/main.js"></script>
   </head>
   <body>
     <main>
-      <div class="stats">
+      <div class="user-metrics">
         <div>
           <div class="wpm"></div>
           <div>words/min</div>
@@ -32,12 +36,18 @@
         autocorrect="off"
         autocapitalize="off"
         spellcheck="false"
-        aria-hidden="true"
       />
       <div class="words-wrapper selectable selected">
         <div class="typed-words"></div>
         <span class="cursor">|</span>
         <div class="prompt-words"></div>
+      </div>
+      <div class="chart-wrapper">
+        <canvas class="chart"></canvas>
+        <div class="chart-buttons">
+          <button type="button" disabled>words per minute</button>
+          <button type="button">accuracy</button>
+        </div>
       </div>
     </main>
   </body>
