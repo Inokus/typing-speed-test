@@ -1,20 +1,34 @@
+body {
+  font-family: "Inconsolata", monospace;
+}
+
 main {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  row-gap: 1rem;
-  width: 80vw;
-  padding: 2rem;
+  justify-content: space-between;
+  /* align-items: center; */
+  height: auto;
+  min-height: 100vh;
   margin: auto;
-  font-family: monospace;
+}
+
+.info-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  row-gap: 2rem;
+  padding: 2rem 0.5rem;
+}
+
+.info-wrapper span {
+  display: block;
+  text-align: center;
 }
 
 .user-metrics {
   display: flex;
+  justify-content: center;
   column-gap: 2rem;
-  text-align: center;
-  transition: 0.5s;
 }
 
 .wpm,
@@ -24,12 +38,48 @@ main {
 }
 
 .timer-wrapper {
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  column-gap: 2rem;
+}
+
+.timer-wrapper button {
+  border: 0;
+  background-color: inherit;
+  cursor: pointer;
+  transition: 0.5s;
+}
+
+.timer-wrapper button:first-child:hover {
+  transform: rotate(-360deg);
+}
+
+.timer-wrapper button:last-child:hover {
+  transform: rotate(360deg);
+}
+
+.timer-wrapper button:hover:active {
+  transform: scale(0.9);
+  transition: 0.1s;
+}
+
+.timer-wrapper button img {
+  width: 2rem;
+  height: 2rem;
+  pointer-events: none;
 }
 
 .timer {
   font-size: 48px;
   font-weight: 700;
+}
+
+.words-wrapper {
+  position: relative;
+  display: flex;
+  padding: 2rem 0.5rem;
+  font-size: 24px;
+  user-select: none;
 }
 
 .user-text {
@@ -40,18 +90,11 @@ main {
   overflow: hidden;
 }
 
-.words-wrapper {
-  display: flex;
-  width: 100%;
-  padding: 1rem;
-  font-size: 24px;
-}
-
 .cursor {
   position: relative;
   left: 0.5ch;
   line-height: 1em;
-  color: orange;
+  color: #ffa500;
   user-select: none;
   visibility: hidden;
 }
@@ -61,7 +104,7 @@ main {
 }
 
 .selected {
-  background-color: blanchedalmond;
+  background-color: #ffebcd;
 }
 
 .selected > .cursor {
@@ -87,12 +130,11 @@ main {
 }
 
 .word {
-  color: gray;
+  color: #808080;
 }
 
 .active {
-  color: black;
-  /* text-decoration: underline; */
+  color: #000;
 }
 
 .correct-word {
@@ -118,17 +160,54 @@ main {
   background-color: inherit;
 }
 
+.message {
+  text-align: center;
+}
+
+.hidden {
+  visibility: hidden;
+}
+
+.chart-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem 0.5rem;
+}
+
+.canvas-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
 .chart-buttons {
   display: flex;
+  width: 100%;
 }
 
 .chart-buttons > button {
   flex: 1;
   border: 0;
+  background-color: #eee;
   cursor: pointer;
+  transition: 0.2s;
+}
+
+.chart-buttons > button:hover {
+  background-color: #ddd;
+}
+
+.chart-buttons > button:active {
+  font-weight: 700;
+  background-color: #ccc;
 }
 
 .chart-buttons > button:disabled {
+  background-color: inherit;
+  font-weight: 700;
+  color: rgb(75, 192, 192);
   cursor: default;
 }
 
@@ -144,5 +223,15 @@ main {
   }
   100% {
     opacity: 0;
+  }
+}
+
+@media screen and (min-width: 768px) {
+  main {
+    width: 80vw;
+  }
+
+  .canvas-container {
+    width: 80vmin;
   }
 }

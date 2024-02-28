@@ -3,10 +3,17 @@ class UserInterface {
     this.divWordsPerMinute = document.querySelector(".wpm");
     this.divAccuracy = document.querySelector(".accuracy");
     this.divTimer = document.querySelector(".timer");
+    this.btnRestart = document.querySelector(
+      ".timer-wrapper button:first-of-type"
+    );
+    this.btnReset = document.querySelector(
+      ".timer-wrapper button:last-of-type"
+    );
     this.inputUserText = document.querySelector(".user-text");
     this.divWordsWrapper = document.querySelector(".words-wrapper");
     this.divTypedWords = document.querySelector(".typed-words");
     this.divPromptWords = document.querySelector(".prompt-words");
+    this.divMessage = document.querySelector(".message");
     this.canvasChart = document.querySelector(".chart").getContext("2d");
     this.btnWordsPerMinuteMode = document.querySelector(
       ".chart-buttons button:first-of-type"
@@ -118,6 +125,10 @@ class UserInterface {
         this.divWordsWrapper.classList.remove("selected");
       }
 
+      if (e.target === this.btnRestart) this.restart();
+
+      if (e.target === this.btnReset) this.reset();
+
       if (e.target === this.btnWordsPerMinuteMode) {
         e.target.disabled = true;
         this.btnAccuracyMode.disabled = false;
@@ -134,11 +145,8 @@ class UserInterface {
     });
 
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        this.restart();
-      } else if (e.key === "Escape") {
-        this.reset();
-      }
+      if (e.key === "Enter") this.restart();
+      else if (e.key === "Escape") this.reset();
     });
 
     document.addEventListener("timerIntervalUpdate", () => {
@@ -146,6 +154,7 @@ class UserInterface {
     });
 
     document.addEventListener("timerEnd", () => {
+      this.compareAttempts();
       this.dataManager.updateLocalStorage();
       this.updateChart(this.chartMode);
       this.inputUserText.disabled = true;
@@ -169,12 +178,21 @@ class UserInterface {
         // Otherwise submit current word and go to the next
         else if (this.timer.started) {
           e.preventDefault();
-
           this.handleTypedWord();
         }
       }
       // Prevent user from manipulating input data in unexpected ways
-      if (e.ctrlKey || e.shiftKey || (e.keyCode >= 37 && e.keyCode <= 40)) {
+      if (
+        e.ctrlKey ||
+        e.key === "ArrowUp" ||
+        e.key === "ArrowRight" ||
+        e.key === "ArrowDown" ||
+        e.key === "ArrowLeft" ||
+        e.key === "PageUp" ||
+        e.key === "PageDown" ||
+        e.key === "Home" ||
+        e.key === "End"
+      ) {
         e.preventDefault();
       }
     });
@@ -232,6 +250,24 @@ class UserInterface {
     this.divPromptWords.innerHTML = "";
   }
 
+  compareAttempts() {
+    if (this.dataManager.userMetrics.length > 0) {
+      const bestAttempt = this.dataManager.getBestEntry();
+      if (this.dataManager.correctlyTypedWords > bestAttempt.wpm) {
+        this.divMessage.firstChild.innerText = `New personal best! Your typing speed has improved by ${
+          this.dataManager.correctlyTypedWords - bestAttempt.wpm
+        } WPM`;
+      } else if (this.dataManager.correctlyTypedWords === bestAttempt.wpm) {
+        this.divMessage.firstChild.innerText = `So close! Your typing speed was the same as personal best`;
+      } else {
+        this.divMessage.firstChild.innerText = `Your typing speed was ${
+          bestAttempt.wpm - this.dataManager.correctlyTypedWords
+        } WPM slower than personal best, keep practicing`;
+      }
+      this.divMessage.classList.remove("hidden");
+    }
+  }
+
   createChart() {
     const data = this.dataManager.getLastEntries(10);
     const config = {
@@ -244,19 +280,21 @@ class UserInterface {
             data: data.map((entry) => entry.wpm),
             backgroundColor: "rgba(75, 192, 192, 0.5)",
             borderColor: "rgba(75, 192, 192, 1)",
-            // borderWidth: 1,
-            // tension: 0.1,
-            fill: false,
           },
         ],
       },
       options: {
+        responsive: true,
+        scale: {
+          ticks: {
+            precision: 0,
+          },
+        },
         scales: {
           x: {
             display: false,
           },
           y: {
-            // beginAtZero: true,
             title: {
               display: true,
               text: "WPM",
@@ -282,10 +320,12 @@ class UserInterface {
       this.chart.data.datasets[0].label = "words per minute";
       this.chart.data.datasets[0].data = data.map((entry) => entry.wpm);
       this.chart.options.scales.y.title.text = "WPM";
+      this.chart.options.scales.y.max = null;
     } else {
       this.chart.data.datasets[0].label = "accuracy percentage";
       this.chart.data.datasets[0].data = data.map((entry) => entry.accuracy);
       this.chart.options.scales.y.title.text = "accuracy, %";
+      this.chart.options.scales.y.max = 100;
     }
     this.chart.update();
   }
@@ -299,6 +339,7 @@ class UserInterface {
     this.inputUserText.disabled = false;
     this.inputUserText.focus();
     this.divWordsWrapper.classList.add("selectable");
+    this.divMessage.classList.add("hidden");
   }
 
   async reset() {
@@ -349,10 +390,7 @@ class DataManager {
       wpm: this.correctlyTypedWords,
       accuracy: this.accuracy,
     };
-
-    console.log(date.toLocaleString());
     this.userMetrics.push(entry);
-    this.logBestEntry();
   }
 
   getLocalStorage() {
@@ -360,8 +398,7 @@ class DataManager {
     if (userMetrics) this.userMetrics = JSON.parse(userMetrics);
   }
 
-  // Change
-  logBestEntry() {
+  getBestEntry() {
     const sorted = this.userMetrics.toSorted((a, b) => {
       // If wpm is different, sort by wpm
       if (a.wpm !== b.wpm) {
@@ -371,7 +408,7 @@ class DataManager {
         return b.accuracy - a.accuracy;
       }
     });
-    console.log(sorted[0]);
+    return sorted[0];
   }
 
   getLastEntries(num) {

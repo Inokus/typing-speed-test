@@ -4,46 +4,66 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Typing Speed Test</title>
+    <link rel="icon" type="image/x-icon" href="./icons/favicon.ico" />
     <link rel="stylesheet" href="./css/normalize.css" />
     <link rel="stylesheet" href="./css/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&display=swap"
+      rel="stylesheet"
+    />
     <script
       defer
       src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"
     ></script>
-    <script defer src="./js/main.js"></script>
+    <script defer type="module" src="./js/main.js"></script>
   </head>
   <body>
     <main>
-      <div class="user-metrics">
-        <div>
-          <div class="wpm"></div>
-          <div>words/min</div>
+      <div class="info-wrapper">
+        <div class="user-metrics">
+          <div>
+            <span class="wpm"></span>
+            <span>words/min</span>
+          </div>
+          <div>
+            <span class="accuracy"></span>
+            <span>% accuracy</span>
+          </div>
         </div>
-        <div>
-          <div class="accuracy"></div>
-          <div>% accuracy</div>
+        <div class="timer-wrapper">
+          <button type="button" title="restart" aria-label="restart">
+            <img src="./icons/rotate-left.svg" alt="" />
+          </button>
+          <div>
+            <span class="timer"></span>
+            <span>seconds</span>
+          </div>
+          <button type="button" title="reset" aria-label="reset">
+            <img src="./icons/rotate.svg" alt="" />
+          </button>
         </div>
       </div>
-      <div class="timer-wrapper">
-        <div class="timer"></div>
-        <div>seconds</div>
-      </div>
-      <input
-        type="text"
-        class="user-text"
-        autofocus
-        autocomplete="off"
-        autocorrect="off"
-        autocapitalize="off"
-        spellcheck="false"
-      />
       <div class="words-wrapper selectable selected">
+        <input
+          type="text"
+          class="user-text"
+          autofocus
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+        />
         <div class="typed-words"></div>
         <span class="cursor">|</span>
         <div class="prompt-words"></div>
       </div>
+      <div class="message hidden"><span></span></div>
       <div class="chart-wrapper">
-        <canvas class="chart"></canvas>
+        <div class="canvas-container">
+          <canvas class="chart"></canvas>
+        </div>
         <div class="chart-buttons">
           <button type="button" disabled>words per minute</button>
           <button type="button">accuracy</button>
